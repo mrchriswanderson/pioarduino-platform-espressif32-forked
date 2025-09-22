@@ -567,7 +567,7 @@ class LibraryIgnoreHandler:
             'esp_timer',      # Timer functions
             'esp_event',      # Event system
             'log',            # Logging system
-            'arduino_tinyusb', # Arduino TinyUSB library
+            'arduino_tinyusb',  # Arduino TinyUSB library
             'tinyusb'         # TinyUSB library
         }
 
@@ -1125,7 +1125,7 @@ class LibraryIgnoreHandler:
 class BackupManager:
     """
     Handles backup and restore operations for build files.
-    
+
     Manages the creation and restoration of backup files for the Arduino
     framework build scripts, ensuring that original files can be restored
     when needed or when builds are cleaned.

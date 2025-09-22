@@ -117,7 +117,7 @@ See https://docs.platformio.org/page/projectconf/build_configurations.html
     def filter_addresses(self, adresses_str):
         addresses = self.ADDR_SPLIT.split(adresses_str)
         size = len(addresses)
-        while size > 1 and self.is_address_ignored(addresses[size-1]):
+        while size > 1 and self.is_address_ignored(addresses[size - 1]):
             size -= 1
         return addresses[:size]
 

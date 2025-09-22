@@ -140,7 +140,7 @@ def validate_threshold(threshold, mcu):
 
     if original_threshold != threshold:
         print(f"Threshold adjusted from {original_threshold} to "
-                        f"max. possible value {threshold} for {mcu}")
+              f"max. possible value {threshold} for {mcu}")
 
     return threshold
 
@@ -466,8 +466,8 @@ def validate_deletion_path(path: Union[str, Path],
         try:
             normalized_path = path.resolve()
             normalized_critical = critical.resolve()
-            if (normalized_path == normalized_critical or
-                    normalized_critical in normalized_path.parents):
+            if (normalized_path == normalized_critical
+                    or normalized_critical in normalized_path.parents):
                 return False
         except (OSError, ValueError):
             # Path comparison failed, reject for safety
@@ -579,8 +579,8 @@ if flag_custom_sdkconfig and has_unicore_flags():
     if not env.get('BUILD_UNFLAGS'):  # Initialize if not set
         env['BUILD_UNFLAGS'] = []
 
-    build_unflags = (" ".join(env['BUILD_UNFLAGS']) +
-                     " -mdisable-hardware-atomics -ustart_app_other_cores")
+    build_unflags = (" ".join(env['BUILD_UNFLAGS'])
+                     + " -mdisable-hardware-atomics -ustart_app_other_cores")
     new_build_unflags = build_unflags.split()
     env.Replace(BUILD_UNFLAGS=new_build_unflags)
 
@@ -646,11 +646,11 @@ def is_framework_subfolder(potential_subfolder):
     # carefully check before change this function
     if not isabs(potential_subfolder):
         return False
-    if (splitdrive(FRAMEWORK_SDK_DIR)[0] !=
-            splitdrive(potential_subfolder)[0]):
+    if (splitdrive(FRAMEWORK_SDK_DIR)[0]
+            != splitdrive(potential_subfolder)[0]):
         return False
-    return (commonpath([FRAMEWORK_SDK_DIR]) ==
-            commonpath([FRAMEWORK_SDK_DIR, potential_subfolder]))
+    return (commonpath([FRAMEWORK_SDK_DIR])
+            == commonpath([FRAMEWORK_SDK_DIR, potential_subfolder]))
 
 
 # Performance optimization with caching
@@ -685,8 +685,8 @@ def analyze_path_distribution(includes):
         'min_length': min(lengths),
         'framework_paths': len(framework_lengths),
         'framework_total_length': sum(framework_lengths),
-        'framework_avg_length': (sum(framework_lengths) /
-                                 len(framework_lengths)
+        'framework_avg_length': (sum(framework_lengths)
+                                 / len(framework_lengths)
                                  if framework_lengths else 0)
     }
 
@@ -713,7 +713,7 @@ def debug_framework_paths(env, include_count, total_length):
         is_fw = is_framework_subfolder(inc)
         if is_fw:
             framework_count += 1
-        print(f"***   {i+1}: {inc} (length: {len(str(inc))}) -> "
+        print(f"***   {i + 1}: {inc} (length: {len(str(inc))}) -> "
               f"Framework: {is_fw} ***")
 
     print(f"*** Framework includes found: {framework_count}/"
@@ -761,9 +761,9 @@ def apply_include_shortening(env, node, includes, total_length):
             if shortened_includes:
                 # Each -I is 2 chars
                 removed_i_flags = len(shortened_includes) * 2
-                new_total_length = (original_length - saved_chars +
-                                    len(f"-iprefix{FRAMEWORK_SDK_DIR}") -
-                                    removed_i_flags)
+                new_total_length = (original_length - saved_chars
+                                    + len(f"-iprefix{FRAMEWORK_SDK_DIR}")
+                                    - removed_i_flags)
                 print(f"*** Applied include path shortening for "
                       f"{len(shortened_includes)} framework paths ***")
                 print(f"*** Path length reduced from {original_length} to "
@@ -818,7 +818,7 @@ def smart_include_length_shorten(env, node):
     if env.get("VERBOSE"):
         debug_framework_paths(env, include_count, total_path_length)
 
-        # Extended debug information about maximum edge threshold 
+        # Extended debug information about maximum edge threshold
         # configuration
         threshold_info = get_threshold_info(env, config, current_env_section)
         print("*** Maximum Threshold Configuration Debug ***")
@@ -859,7 +859,7 @@ if "arduino" in current_env_frameworks and "espidf" in current_env_frameworks:
     # Arduino as component is set, switch off Hybrid compile
     flag_custom_sdkconfig = False
 
-# Framework reinstallation if required - Enhanced with secure deletion and 
+# Framework reinstallation if required - Enhanced with secure deletion and
 # error handling
 if check_reinstall_frwrk():
     # Secure removal of SDKConfig files
@@ -890,8 +890,8 @@ if flag_custom_sdkconfig and not flag_any_custom_sdkconfig:
 pioframework = env.subst("$PIOFRAMEWORK")
 arduino_lib_compile_flag = env.subst("$ARDUINO_LIB_COMPILE_FLAG")
 
-if ("arduino" in pioframework and "espidf" not in pioframework and
-        arduino_lib_compile_flag in ("Inactive", "True")):
+if ("arduino" in pioframework and "espidf" not in pioframework
+        and arduino_lib_compile_flag in ("Inactive", "True")):
 
     # try to remove not needed include path if an lib_ignore entry exists
     from component_manager import ComponentManager

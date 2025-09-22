@@ -33,7 +33,7 @@ from SCons.Script import (
 
 from platformio.project.helpers import get_project_dir
 from platformio.util import get_serial_ports
-from platformio.compat import IS_WINDOWS
+# IS_WINDOWS import removed as it's not used in this file
 
 # Initialize SCons environment and project configuration
 env = DefaultEnvironment()
@@ -66,7 +66,7 @@ def load_board_script(env):
     if script_path.exists():
         try:
             spec = importlib.util.spec_from_file_location(
-                f"board_{board_id}", 
+                f"board_{board_id}",
                 str(script_path)
             )
             board_module = importlib.util.module_from_spec(spec)
@@ -78,11 +78,12 @@ def load_board_script(env):
         except Exception as e:
             print(f"Error loading board script {board_id}.py: {e}")
 
+
 def BeforeUpload(target, source, env):
     """
     Prepare the environment before uploading firmware.
     Handles port detection and special upload configurations.
-    
+
     Args:
         target: SCons target
         source: SCons source
@@ -106,10 +107,10 @@ def BeforeUpload(target, source, env):
 def _get_board_memory_type(env):
     """
     Determine the memory type configuration for the board.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         str: The appropriate memory type string based on board configuration
     """
@@ -132,10 +133,10 @@ def _get_board_memory_type(env):
 def _normalize_frequency(frequency):
     """
     Convert frequency value to normalized string format (e.g., "40m").
-    
+
     Args:
         frequency: Frequency value to normalize
-        
+
     Returns:
         str: Normalized frequency string with 'm' suffix
     """
@@ -146,10 +147,10 @@ def _normalize_frequency(frequency):
 def _get_board_f_flash(env):
     """
     Get the flash frequency for the board.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         str: Flash frequency string
     """
@@ -160,10 +161,10 @@ def _get_board_f_flash(env):
 def _get_board_f_image(env):
     """
     Get the image frequency for the board, fallback to flash frequency.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         str: Image frequency string
     """
@@ -177,10 +178,10 @@ def _get_board_f_image(env):
 def _get_board_f_boot(env):
     """
     Get the boot frequency for the board, fallback to flash frequency.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         str: Boot frequency string
     """
@@ -195,10 +196,10 @@ def _get_board_flash_mode(env):
     """
     Determine the appropriate flash mode for the board.
     Handles special cases for OPI memory types.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         str: Flash mode string
     """
@@ -215,10 +216,10 @@ def _get_board_boot_mode(env):
     """
     Determine the boot mode for the board.
     Handles special cases for OPI memory types.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         str: Boot mode string
     """
@@ -232,10 +233,10 @@ def _get_board_boot_mode(env):
 def _parse_size(value):
     """
     Parse size values from various formats (int, hex, K/M suffixes).
-    
+
     Args:
         value: Size value to parse
-        
+
     Returns:
         int: Size in bytes as an integer
     """
@@ -255,10 +256,10 @@ def _parse_partitions(env):
     """
     Parse the partition table CSV file and return partition information.
     Also sets the application offset for the environment.
-    
+
     Args:
         env: SCons environment object
-        
+
     Returns:
         list: List of partition dictionaries
     """
@@ -312,7 +313,7 @@ def _update_max_upload_size(env):
     """
     Update the maximum upload size based on partition table configuration.
     Prioritizes user-specified partition names.
-    
+
     Args:
         env: SCons environment object
     """
@@ -352,10 +353,10 @@ def _update_max_upload_size(env):
 def _to_unix_slashes(path):
     """
     Convert Windows-style backslashes to Unix-style forward slashes.
-    
+
     Args:
         path (str): Path to convert
-        
+
     Returns:
         str: Path with Unix-style slashes
     """
@@ -366,7 +367,7 @@ def fetch_fs_size(env):
     """
     Extract filesystem size and offset information from partition table.
     Sets FS_START, FS_SIZE, FS_PAGE, and FS_BLOCK environment variables.
-    
+
     Args:
         env: SCons environment object
     """
@@ -385,7 +386,7 @@ def fetch_fs_size(env):
         )
         env.Exit(1)
         return
-    
+
     env["FS_START"] = _parse_size(fs["offset"])
     env["FS_SIZE"] = _parse_size(fs["size"])
     env["FS_PAGE"] = int("0x100", 16)
@@ -401,12 +402,12 @@ def fetch_fs_size(env):
 def __fetch_fs_size(target, source, env):
     """
     Wrapper function for fetch_fs_size to be used as SCons emitter.
-    
+
     Args:
         target: SCons target
         source: SCons source
         env: SCons environment object
-        
+
     Returns:
         tuple: (target, source) tuple
     """
@@ -417,7 +418,7 @@ def __fetch_fs_size(target, source, env):
 def check_lib_archive_exists():
     """
     Check if lib_archive is set in platformio.ini configuration.
-    
+
     Returns:
         bool: True if found, False otherwise
     """
@@ -456,8 +457,8 @@ if "INTEGRATION_EXTRA_DATA" not in env:
 
 # Take care of possible whitespaces in path
 uploader_path = (
-    f'"{esptool_binary_path}"' 
-    if ' ' in esptool_binary_path 
+    f'"{esptool_binary_path}"'
+    if ' ' in esptool_binary_path
     else esptool_binary_path
 )
 # Configure SCons build tools and compiler settings
@@ -590,7 +591,7 @@ def firmware_metrics(target, source, env):
     """
     Custom target to run esp-idf-size with support for command line parameters.
     Usage: pio run -t metrics -- [esp-idf-size arguments]
-    
+
     Args:
         target: SCons target
         source: SCons source
@@ -610,14 +611,14 @@ def firmware_metrics(target, source, env):
         print("Make sure the project is built first with 'pio run'")
         return
 
-    try:        
+    try:
         cmd = [PYTHON_EXE, "-m", "esp_idf_size", "--ng"]
-        
+
         # Parameters from platformio.ini
         extra_args = env.GetProjectOption("custom_esp_idf_size_args", "")
         if extra_args:
             cmd.extend(shlex.split(extra_args))
-        
+
         # Command Line Parameter, after --
         cli_args = []
         if "--" in sys.argv:
@@ -631,14 +632,14 @@ def firmware_metrics(target, source, env):
 
         # Map-file as last argument
         cmd.append(map_file)
-        
+
         # Debug-Info if wanted
         if env.GetProjectOption("custom_esp_idf_size_verbose", False):
             print(f"Running command: {' '.join(cmd)}")
-        
+
         # Execute esp-idf-size with current environment
         result = subprocess.run(cmd, check=False, capture_output=False, env=os.environ)
-        
+
         if result.returncode != 0:
             print(f"Warning: esp-idf-size exited with code {result.returncode}")
 
