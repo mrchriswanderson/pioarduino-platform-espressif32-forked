@@ -252,8 +252,11 @@ def setup_python_paths(penv_dir):
         site.addsitedir(str(site_path))
 
 def setup_python_environment(env, platform, platform_dir, install_esptool=True):
+    # ERZWUNGENER Pfad zum venv: immer Unterordner "penv"
     penv_dir = str(Path(platform_dir) / "penv")
+    print(f"[DEBUG] setup_python_environment: Using penv directory: {penv_dir}", file=sys.stderr)
 
+    # Upgrade-Subprozess-Handling (Boostrap)
     if "--in-temp" in sys.argv:
         idx = sys.argv.index("--in-temp")
         in_penv = sys.argv[idx + 1]
@@ -268,16 +271,16 @@ def setup_python_environment(env, platform, platform_dir, install_esptool=True):
         uv_exec = _setup_pipenv_minimal(penv_dir)
 
     python_executable = get_executable_path(penv_dir, "python")
+    print(f"[DEBUG] Python executable path resolved to: {python_executable}", file=sys.stderr)
 
-    print(f"[DEBUG] Using penv python executable: {python_executable}", file=sys.stderr)
-
+    # Sicherstellen, dass env den korrekten Python-Interpreter benutzt
     if env:
         env.Replace(PYTHONEXE=python_executable)
-        print(f"[DEBUG] Set env PYTHONEXE to penv python executable", file=sys.stderr)
+        print("[DEBUG] PYTHONEXE in env gesetzt", file=sys.stderr)
 
-    # Zusätzlich globale Umgebungsvariable setzen, falls env nicht komplett verwendet wird
+    # Global sicherheitshalber Umgebungsvariable setzen
     os.environ["PYTHONEXE"] = python_executable
-    os.environ["PATH"] = f"{Path(penv_dir) / ('Scripts' if IS_WINDOWS else 'bin')}{os.pathsep}{os.environ.get('PATH', '')}"
+    os.environ["PATH"] = f"{Path(penv_dir)/('Scripts' if IS_WINDOWS else 'bin')}{os.pathsep}{os.environ.get('PATH','')}"
 
     if not Path(python_executable).exists():
         sys.stderr.write(f"Python executable not found in penv: {python_executable}\n")
@@ -299,9 +302,10 @@ def setup_python_environment(env, platform, platform_dir, install_esptool=True):
         else:
             _install_pyos_tool(platform, python_executable, uv_bin)
 
-    # Setup certifi environment variables
+    # Setup certifi env vars
     try:
-        certifi_path = subprocess.check_output([python_executable, "-m", "certifi"], text=True, timeout=5).strip()
+        certifi_path = subprocess.check_output(
+            [python_executable, "-m", "certifi"], text=True, timeout=5).strip()
         os.environ["REQUESTS_CA_BUNDLE"] = certifi_path
         os.environ["SSL_CERT_FILE"] = certifi_path
         if env:
