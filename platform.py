@@ -46,20 +46,22 @@ from platformio.package.manager.tool import ToolPackageManager
 
 logger = logging.getLogger(__name__)
 
-# -- Import penv_setup and map needed functions --
+# Import penv_setup module and necessary functions
 penv_setup_path = Path(__file__).parent / "builder" / "penv_setup.py"
 spec = importlib.util.spec_from_file_location("penv_setup", str(penv_setup_path))
 penv_setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(penv_setup)
 
 setup_pipenv = penv_setup.setup_pipenv
-# create_venv = penv_setup.create_temp_venv
-launch_penv = penv_setup.launch_penv
+create_temp_venv = penv_setup.create_temp_venv
+launch_temp_venv = penv_setup.launch_temp_venv
 in_temp_process = penv_setup.in_temp_process
 install_dependencies = penv_setup.install_dependencies
 write_marker = penv_setup.write_marker
-has_internet = penv_setup.has_internet_connection
+launch_penv = penv_setup.launch_penv
+has_internet_connection = penv_setup.has_internet_connection
 get_executable_path = penv_setup.get_executable_path
+_install_pyos_tool = penv_setup._install_pyos_tool  # esptool installation helper
 
 # Constants
 DEFAULT_DEBUG_SPEED = "5000"
@@ -217,7 +219,7 @@ class Espressif32Platform(PlatformBase):
         self._packages_dir = None
         self._tools_cache = {}
         self._mcu_cache = {}
-        self._penv = None
+        self._penv_python = None
         self._esptool_path = None
 
     @property
@@ -229,9 +231,52 @@ class Espressif32Platform(PlatformBase):
         return self._packages_dir
 
     def _setup_python_environment(self, env, platform, platform_dir, should_install=True):
-        return penv_setup.setup_python_environment(env, platform, platform_dir, should_install)
+        penv_dir = str(Path(platform_dir) / "penv")
 
-    def setup_python_environment(self, env):
+        if "--in-temp" in sys.argv:
+            idx = sys.argv.index("--in-temp")
+            penv_dir_arg = sys.argv[idx + 1]
+            temp_dir_arg = sys.argv[idx + 2]
+            remaining_args = sys.argv[idx + 3:]
+            in_temp_process(penv_dir_arg, temp_dir_arg, str(Path(__file__).absolute()), remaining_args)
+
+        uv_exe = None
+        if env:
+            uv_exe = setup_pipenv(env, penv_dir)
+        else:
+            uv_exe = penv_setup._setup_pipenv_minimal(penv_dir)
+
+        python_bin = get_executable_path(penv_dir, "python")
+
+        if env:
+            env.Replace(PYTHONEXE=python_bin)
+
+        if not os.path.isfile(python_bin):
+            sys.stderr.write(f"Python executable not found: {python_bin}\n")
+            sys.exit(1)
+
+        penv_setup.setup_python_paths(penv_dir)
+
+        uv_bin = get_executable_path(penv_dir, "uv")
+        esptool_bin = get_executable_path(penv_dir, "esptool")
+
+        if has_internet_connection() or os.getenv("GITHUB_ACTIONS"):
+            if not install_dependencies(python_bin, uv_exe):
+                sys.stderr.write("Failed to install Python dependencies\n")
+                sys.exit(1)
+
+        if should_install:
+            if env:
+                self.install_esptool(env, platform, python_bin, uv_bin)
+            else:
+                _install_pyos_tool(platform, python_bin, uv_bin)
+
+        self._penv_python = python_bin
+        self._esptool_path = esptool_bin
+
+        return python_bin, esptool_bin
+
+    def setup_python_env(self, env):
         if self._penv_python and self._esptool_path:
             env.Replace(PYTHONEXE=self._penv_python)
             return self._penv_python, self._esptool_path
