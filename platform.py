@@ -826,7 +826,7 @@ class Espressif32Platform(PlatformBase):
         if not variables.get("board"):
             return super().configure_default_packages(variables, targets)
 
-        core_dir = ProjectConfig.get_instance().get("core_dir")
+        core_dir = ProjectConfig.get_instance().get("platformio", "core_dir")
         try:
             self._setup_python_env(None, self, core_dir)
             # continue with your standard package installation logic
