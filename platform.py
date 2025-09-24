@@ -51,7 +51,7 @@ spec = importlib.util.spec_from_file_location("penv_setup", str(penv_setup_path)
 penv_setup_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(penv_setup_module)
 
-setup_penv_minimal = penv_setup_module.setup_penv_minimal
+setup_pipenv = penv_setup_module.setup_pipenv
 get_executable_path = penv_setup_module.get_executable_path
 
 
