@@ -101,7 +101,7 @@ def install_dependencies(python_executable):
 
     uv_in_penv_available = False
     try:
-        result = subprocess.run([uv_executable, "--version"], capture_output=True, text=True)
+        result = subprocess.run([uv_exec, "--version"], capture_output=True, text=True)
         uv_in_penv_available = result.returncode == 0
     except Exception:
         uv_in_penv_available = False
@@ -110,7 +110,7 @@ def install_dependencies(python_executable):
         try:
             subprocess.check_call([python_executable, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)
-            print("uv erfolgreich installiert.")
+            print("uv installed successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Error installing uv package: {e}", file=sys.stderr)
             return False
