@@ -97,7 +97,7 @@ def install_dependencies(python_executable):
         return False
 
     penv_dir = Path(python_executable).parent.parent
-    uv_executable = get_executable_path(penv_dir, "uv")
+    uv_exec = get_executable_path(penv_dir, "uv")
 
     uv_in_penv_available = False
     try:
