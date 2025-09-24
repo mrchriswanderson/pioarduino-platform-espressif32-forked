@@ -53,6 +53,7 @@ penv_setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(penv_setup)
 
 setup_pipenv = penv_setup.setup_pipenv
+_setup_pipenv_minimal = penv_setup._setup_pipenv_minimal
 create_temp_venv = penv_setup.create_temp_venv
 launch_temp_venv = penv_setup.launch_temp_venv
 in_temp_process = penv_setup.in_temp_process
