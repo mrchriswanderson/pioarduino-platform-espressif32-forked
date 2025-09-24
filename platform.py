@@ -57,7 +57,6 @@ create_temp_venv = penv_setup.create_temp_venv
 launch_temp_venv = penv_setup.launch_temp_venv
 in_temp_process = penv_setup.in_temp_process
 install_dependencies = penv_setup.install_dependencies
-write_marker = penv_setup.write_marker
 launch_penv = penv_setup.launch_penv
 has_internet_connection = penv_setup.has_internet_connection
 get_executable_path = penv_setup.get_executable_path
