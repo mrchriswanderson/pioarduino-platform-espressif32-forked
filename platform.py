@@ -59,7 +59,7 @@ in_temp_process = penv_setup.in_temp_process
 install_dependencies = penv_setup.install_dependencies
 write_marker = penv_setup.write_marker
 launch_penv = penv_setup.launch_penv_python
-has_internet = penv_setup.has_internet
+has_internet_connection = penv_setup.has_internet_connection
 
 get_executable_path = penv_setup.get_executable_path
 
@@ -261,7 +261,7 @@ class Espressif32Platform(PlatformBase):
         uv_bin = get_executable_path(penv_dir, "uv")
         esptool_bin = get_executable_path(penv_dir, "esptool")
 
-        if has_internet() or os.environ.get("GITHUB_ACTIONS"):
+        if has_internet_connection() or os.getenv("GITHUB_ACTIONS"):
             if not install_dependencies(python_executable):
                 print("Error: Failed to install Python dependencies", file=sys.stderr)
                 sys.exit(1)
