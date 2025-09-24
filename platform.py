@@ -219,6 +219,7 @@ class Espressif32Platform(PlatformBase):
         self._packages_dir = None
         self._tools_cache = {}
         self._mcu_cache = {}
+        self._mcu_config_cache = {}
         self._penv_python = None
         self._esptool_path = None
 
