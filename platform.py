@@ -845,8 +845,8 @@ class Espressif32Platform(PlatformBase):
             core_dir = config.get("platformio", "core_dir")
             
             # Setup penv using minimal function (no SCons dependencies, esptool from tl-install)
-            penv_python, esptool_path = _setup_pipenv_minimal(self, core_dir, install_esptool=True)
-            
+            penv_python, esptool_path = _setup_pipenv_minimal(self, core_dir)
+
             # Store both for later use
             self._penv_python = penv_python
             self._esptool_path = esptool_path
