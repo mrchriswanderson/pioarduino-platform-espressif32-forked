@@ -824,9 +824,9 @@ class Espressif32Platform(PlatformBase):
         core_dir = ProjectConfig.get_instance().get("platformio", "core_dir")
 
         try:
-            penv_python, esptool_path = _setup_pipenv_minimal(core_dir)
-            self._penv_python = penv_python
-            self._esptool_path = esptool_path
+            self._penv_python, self._esptool_path = self._setup_python_environment(
+                None, self, core_dir, True
+            )
         except Exception as e:
             logger.error(f"Python environment setup failed: {e}")
 
