@@ -252,7 +252,7 @@ class Espressif32Platform(PlatformBase):
             env.Replace(PYTHONEXE=python_bin)
 
         if not os.path.isfile(python_bin):
-            sys.stderr.write(f"Python executable not found: {python_bin}\n")
+            logger.error(f"Python executable not found: {python_bin}")
             sys.exit(1)
 
         penv_setup.setup_python_paths(penv_dir)
@@ -262,7 +262,7 @@ class Espressif32Platform(PlatformBase):
 
         if has_internet_connection() or os.getenv("GITHUB_ACTIONS"):
             if not install_dependencies(python_bin, uv_exe):
-                sys.stderr.write("Failed to install Python dependencies\n")
+                logger.error("Failed to install Python dependencies")
                 sys.exit(1)
 
         if should_install:
@@ -275,11 +275,6 @@ class Espressif32Platform(PlatformBase):
         self._esptool_path = esptool_bin
 
         return python_bin, esptool_bin
-
-    def setup_python_env(self, env):
-        if self._penv_python and self._esptool_path:
-            env.Replace(PYTHONEXE=self._penv_python)
-            return self._penv_python, self._esptool_path
 
     def _check_tl_install_version(self) -> bool:
         """
@@ -817,21 +812,23 @@ class Espressif32Platform(PlatformBase):
             self._install_filesystem_tool(filesystem, for_download=True)
 
     def setup_python_env(self, env):
-        """Configure SCons environment with centrally managed Python executable paths."""
-        if self._penv and self._esptool_path:
-            env.Replace(PYTHONEXE=self._penv)
-            return self._penv, self._esptool_path
+        if self._penv_python and self._esptool_path:
+            env.Replace(PYTHONEXE=self._penv_python)
+            return self._penv_python, self._esptool_path
 
-    def configure_default_packages(self, variables: Dict, targets: List[str]) -> Any:
+    def configure_default_packages(self, variables: Dict, targets: List[str]) -> Union[None, Any]:
         """Main configuration method with optimized package management."""
         if not variables.get("board"):
             return super().configure_default_packages(variables, targets)
 
         core_dir = ProjectConfig.get_instance().get("platformio", "core_dir")
+
         try:
-            self._penv_python, self._esptool_path = self._setup_python_environment(None, self, core_dir, True)
+            self._penv_python, self._esptool_path = self._setup_python_environment(
+                None, self, core_dir, True
+            )
         except Exception as e:
-            print(f"Python environment setup failed: {e}", file=sys.stderr)
+            logger.error(f"Python environment setup failed: {e}")
 
         # Base configuration
         board_config = self.board_config(variables.get("board"))
