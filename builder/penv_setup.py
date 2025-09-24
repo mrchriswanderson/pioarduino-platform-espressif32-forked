@@ -73,25 +73,44 @@ def launch_temp_venv(temp_dir, penv_dir, script_path, extra_args):
         print(f"Temp python executable not found: {temp_python}", file=sys.stderr)
         sys.exit(1)
     args = [str(temp_python), script_path, "--in-temp", penv_dir, temp_dir] + extra_args
-    print(f"[STEP 3] Launching temp python process: {' '.join(args)}")
     subprocess.Popen(args, close_fds=True)
     sys.exit(0)
 
-def install_dependencies(python_executable):
-    penv_dir = Path(python_executable).parent.parent
-    uv_exec = get_executable_path(penv_dir, "uv")
-
-    uv_available = False
+def ensure_pip(python_executable):
     try:
-        res = subprocess.run([uv_exec, "--version"], capture_output=True, text=True)
-        uv_available = (res.returncode == 0)
-    except Exception:
-        uv_available = False
+        subprocess.check_call([python_executable, "-m", "pip", "--version"],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except subprocess.CalledProcessError:
+        print("Pip is not available, try to install with ensurepip.")
+        try:
+            subprocess.check_call([python_executable, "-m", "ensurepip", "--default-pip"],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except Exception as e:
+            return False
 
-    if not uv_available:
+
+def install_dependencies(python_executable):
+    if not ensure_pip(python_executable):
+        print(f"Failed to install pip: {e}", file=sys.stderr)
+        return False
+
+    penv_dir = Path(python_executable).parent.parent
+    uv_executable = get_executable_path(penv_dir, "uv")
+
+    uv_in_penv_available = False
+    try:
+        result = subprocess.run([uv_executable, "--version"], capture_output=True, text=True)
+        uv_in_penv_available = result.returncode == 0
+    except Exception:
+        uv_in_penv_available = False
+
+    if not uv_in_penv_available:
         try:
             subprocess.check_call([python_executable, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)
+            print("uv erfolgreich installiert.")
         except subprocess.CalledProcessError as e:
             print(f"Error installing uv package: {e}", file=sys.stderr)
             return False
