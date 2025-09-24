@@ -49,74 +49,70 @@ def has_internet_connection(host="1.1.1.1", port=53, timeout=2):
 
 def get_executable_path(venv_dir, executable_name):
     exe_suffix = ".exe" if IS_WINDOWS else ""
-    scripts_dir = "Scripts" if IS_WINDOWS else "bin"
-    return str(Path(venv_dir) / scripts_dir / f"{executable_name}{exe_suffix}")
+    script_dir = "Scripts" if IS_WINDOWS else "bin"
+    return str(Path(venv_dir) / script_dir / f"{executable_name}{exe_suffix}")
 
 def create_temp_venv(python_executable):
     temp_dir = tempfile.mkdtemp(prefix="penv_temp_")
     try:
         subprocess.check_call(
             ["uv", "venv", "--clear", f"--python={python_executable}", temp_dir],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90
-        )
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
         print(f"[Step 1] Created temp venv: {temp_dir}")
     except Exception as e:
         print(f"Failed to create temp venv: {e}", file=sys.stderr)
         sys.exit(1)
     return temp_dir
 
-
 def launch_temp_venv(temp_dir, penv_dir, script_path, args):
     python_bin = Path(temp_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")
     if not python_bin.exists():
-        print(f"Temp python not found: {python_bin}", file=sys.stderr)
+        print(f"Temporary python not found: {python_bin}", file=sys.stderr)
         sys.exit(1)
-    command = [str(python_bin), script_path, "--in-temp", penv_dir, temp_dir] + args
-    print(f"[Step 3] Launching temp process: {' '.join(command)}")
-    subprocess.Popen(command, close_fds=True)
+    cmd = [str(python_bin), script_path, "--in-temp", penv_dir, temp_dir] + args
+    print(f"[Step 3] Launching temp python process: {' '.join(cmd)}")
+    subprocess.Popen(cmd, close_fds=True)
     sys.exit(0)
 
-
 def in_temp_process(penv_dir, temp_dir, script_path, args):
-    path = Path(penv_dir)
-    if path.exists():
-        rmtree(path)
+    penv_path = Path(penv_dir)
+    if penv_path.exists():
+        rmtree(penv_path)
     try:
         subprocess.check_call(
             ["uv", "venv", "--clear", f"--python={sys.executable}", penv_dir],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90
-        )
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
         print(f"[Step 5] Created final venv: {penv_dir}")
     except Exception as e:
         print(f"Failed to create final venv: {e}", file=sys.stderr)
         sys.exit(1)
-
+    # marker file
     Path(penv_dir, "pioenv_marker").write_text("required by platform\n")
 
     if has_internet_connection():
-        if not install_dependencies(str(Path(penv_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python"))):
-            print("Dependency installation failed", file=sys.stderr)
+        python_bin = Path(penv_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")
+        if not install_dependencies(str(python_bin)):
+            print("Failed to install Python dependencies", file=sys.stderr)
             sys.exit(1)
     else:
-        print("No internet detected, skipping dependency installation")
+        print("No internet detected - skipping dependencies")
 
-    command = [str(Path(penv_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python"))] + args
-    subprocess.call(command)
+    python_bin = Path(penv_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")
+    subprocess.call([str(python_bin)] + args)
     sys.exit(0)
 
-
 def setup_pipenv(env, penv_dir):
-    if not (Path(penv_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")).exists():
+    python_bin = Path(penv_dir) / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")
+    if not python_bin.exists():
         uv_path = None
         try:
             python_exe = env.subst("$PYTHONEXE")
-            uv_path_guess = Path(python_exe).parent / ("uv.exe" if IS_WINDOWS else "uv")
-            uv_path = str(uv_path_guess) if uv_path_guess.exists() else "uv"
+            uv_guess = Path(python_exe).parent / ("uv.exe" if IS_WINDOWS else "uv")
+            uv_path = str(uv_guess) if uv_guess.exists() else "uv"
             subprocess.check_call(
                 [uv_path, "venv", "--clear", f"--python={python_exe}", penv_dir],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90
-            )
-            print(f"[Setup] Created venv with uv: {penv_dir}")
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
+            print(f"[Setup] Created venv using uv: {penv_dir}")
             Path(penv_dir, "pioenv_marker").write_text("required by platform\n")
             return uv_path
         except Exception:
@@ -124,20 +120,16 @@ def setup_pipenv(env, penv_dir):
 
         env.Execute(env.VerboseAction(
             f'"$PYTHONEXE" -m venv --clear "{penv_dir}"',
-            f"Created Python venv at {penv_dir}"
-        ))
-
+            f"Created python venv at {penv_dir}"))
         Path(penv_dir, "pioenv_marker").write_text("required by platform\n")
     return None
 
-
 def setup_python_paths(penv_dir):
-    version_path = f"python{sys.version_info.major}.{sys.version_info.minor}"
-    site_path = Path(penv_dir) / ("Lib" if IS_WINDOWS else "lib") / version_path / "site-packages"
-    if site_path.exists():
+    python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
+    site_package_dir = Path(penv_dir) / ("Lib" if IS_WINDOWS else "lib") / python_version / "site-packages"
+    if site_package_dir.exists():
         import site
-        site.addsitedir(str(site_path))
-
+        site.addsitedir(str(site_package_dir))
 
 def ensure_pip(python_executable):
     try:
@@ -151,16 +143,15 @@ def ensure_pip(python_executable):
             print(f"Failed to install pip: {e}", file=sys.stderr)
             return False
 
-
-def install_dependencies(python_executable, uv_exec=None):
+def install_dependencies(python_executable, uv_executable=None):
     if not ensure_pip(python_executable):
-        print("pip not installed, abort installation.", file=sys.stderr)
+        print("pip not installed, aborting dependency install", file=sys.stderr)
         return False
 
     venv_dir = Path(python_executable).parent.parent
-    uv_exec = uv_exec or get_executable_path(venv_dir, "uv")
+    uv_executable = uv_executable or get_executable_path(venv_dir, "uv")
     try:
-        subprocess.check_call([uv_exec, "pip", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call([uv_executable, "pip", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         try:
             subprocess.check_call([python_executable, "-m", "pip", "install", "uv>=0.1.0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -168,33 +159,64 @@ def install_dependencies(python_executable, uv_exec=None):
             print(f"Failed to install uv: {e}", file=sys.stderr)
             return False
 
-    def get_installed():
+    def get_installed_packages():
         try:
-            res = subprocess.run([uv_exec, "pip", "list", f"--python={python_executable}", "--format=json"], capture_output=True, text=True, timeout=600)
+            res = subprocess.run(
+                [uv_executable, "pip", "list", f"--python={python_executable}", "--format=json"],
+                capture_output=True, text=True, timeout=600)
             if res.returncode == 0:
-                pkgs = json.loads(res.stdout)
-                return {p["name"].lower(): p["version"] for p in pkgs}
+                packages = json.loads(res.stdout)
+                return {p["name"].lower(): p["version"] for p in packages}
         except Exception:
             pass
         return {}
 
-    installed = get_installed()
+    installed_packages = get_installed_packages()
 
-    to_install = []
+    packages_to_install = []
     for pkg, spec in python_deps.items():
-        pkg_lower = pkg.lower()
-        if pkg_lower not in installed:
-            to_install.append(spec if spec.startswith(("http", "git+", "file://")) else f"{pkg}{spec}")
+        if pkg.lower() not in installed_packages:
+            packages_to_install.append(spec if spec.startswith(("http", "git+", "file://")) else f"{pkg}{spec}")
 
-    if to_install:
+    if packages_to_install:
         try:
-            subprocess.check_call([uv_exec, "pip", "install", "--quiet", "--upgrade", f"--python={python_executable}"] + to_install, timeout=600,
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print(f"Installed Python packages: {to_install}")
+            subprocess.check_call([uv_executable, "pip", "install", "--quiet", "--upgrade", f"--python={python_executable}"] + packages_to_install,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600)
+            print(f"Installed packages: {packages_to_install}")
         except Exception as e:
-            print(f"Failed installing dependencies: {e}", file=sys.stderr)
+            print(f"Failed to install packages: {e}", file=sys.stderr)
             return False
+
     return True
+
+def launch_penv(python_executable, args):
+    try:
+        subprocess.check_call([python_executable] + args)
+    except subprocess.CalledProcessError as error:
+        print(f"Error in launch_penv: {error}", file=sys.stderr)
+        sys.exit(error.returncode)
+
+def _install_pyos_tool(platform, python_executable, uv_executable):
+    esptool_dir = platform.get_package_path("tool-esptoolpy")
+    if not esptool_dir:
+        return
+
+    try:
+        result = subprocess.run(
+            [python_executable, "-c",
+             "import esptool, os, sys; print('MATCH' if os.path.abspath(sys.argv[1]) == os.path.abspath(os.path.dirname(esptool.__file__)) else 'MISMATCH')",
+             esptool_dir],
+            capture_output=True, text=True, timeout=5)
+        if result.stdout.strip() == "MATCH":
+            return
+    except Exception:
+        pass
+
+    try:
+        subprocess.check_call([uv_executable, "pip", "install", "-e", esptool_dir, "--quiet"], timeout=60)
+        print("Installed esptool in editable mode")
+    except Exception as e:
+        print(f"Failed to install esptool: {e}", file=sys.stderr)
 
 def _install_pyos_tool(platform, python_executable, uv_executable):
     esptool_dir = platform.get_package_dir("tool-esptoolpy")
