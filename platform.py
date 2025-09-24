@@ -47,8 +47,8 @@ from platformio.package.manager.tool import ToolPackageManager
 logger = logging.getLogger(__name__)
 
 # -- Import penv_setup and map needed functions --
-penv_path = Path(__file__).parent / "builder" / "penv_setup.py"
-spec = importlib.util.spec_from_file_location("penv_setup", str(penv_path))
+penv_setup_path = Path(__file__).parent / "builder" / "penv_setup.py"
+spec = importlib.util.spec_from_file_location("penv_setup", str(penv_setup_path))
 penv_setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(penv_setup)
 
@@ -230,55 +230,13 @@ class Espressif32Platform(PlatformBase):
             self._packages_dir = Path(config.get("platformio", "packages_dir"))
         return self._packages_dir
 
-    def _setup_python_env(self, env, platform, platform_dir, install_esptool=True):
-        penv_dir = str(Path(platform_dir) / "penv")
+    def _setup_python_environment(self, env, platform, platform_dir, should_install=True):
+        return penv_setup.setup_python_environment(env, platform, platform_dir, should_install)
 
-        # Detect if run with --in-temp (upgrade subprocess)
-        if "--in-temp" in sys.argv:
-            idx = sys.argv.index("--in-temp")
-            penv_arg = sys.argv[idx + 1]
-            temp_arg = sys.argv[idx + 2]
-            rest_args = sys.argv[idx + 3:]
-            in_temp_process(penv_arg, temp_arg, str(Path(__file__).absolute()), rest_args)
-
-        uv_exe = None
-        if env:
-            uv_exe = setup_pipenv(env, penv_dir)
-        else:
-            uv_exe = penv_setup._setup_pipenv_minimal(penv_dir)
-
-        python_executable = get_executable_path(penv_dir, "python")
-
-        if env:
-            env.Replace(PYTHONEXE=python_executable)
-
-        if not os.path.isfile(python_executable):
-            print(f"Error: Python executable not found at {python_executable}", file=sys.stderr)
-            sys.exit(1)
-
-        penv_setup.setup_python_path(penv_dir)
-
-        uv_bin = get_executable_path(penv_dir, "uv")
-        esptool_bin = get_executable_path(penv_dir, "esptool")
-
-        if has_internet_connection() or os.getenv("GITHUB_ACTIONS"):
-            if not install_dependencies(python_executable):
-                print("Error: Failed to install Python dependencies", file=sys.stderr)
-                sys.exit(1)
-
-        if install_esptool:
-            if env:
-                # Your platform-specific 'install esptool' call
-                self.install_esptool(env, platform, python_executable, uv_bin)
-            else:
-                penv_setup._install_pyosptool(platform, python_executable, uv_bin)
-
-        penv_setup._setup_certifi_env(env, python_executable)
-
-        self._penv = python_executable
-        self._esptool_path = esptool_bin
-
-        return python_executable, esptool_bin
+    def setup_python_environment(self, env):
+        if self._penv_python and self._esptool_path:
+            env.Replace(PYTHONEXE=self._penv_python)
+            return self._penv_python, self._esptool_path
 
     def _check_tl_install_version(self) -> bool:
         """
@@ -828,10 +786,9 @@ class Espressif32Platform(PlatformBase):
 
         core_dir = ProjectConfig.get_instance().get("platformio", "core_dir")
         try:
-            self._setup_python_env(None, self, core_dir)
-            # continue with your standard package installation logic
+            self._penv_python, self._esptool_path = self._setup_python_environment(None, self, core_dir, True)
         except Exception as e:
-            logger.error(f"Python environment setup failed: {e}")
+            print(f"Python environment setup failed: {e}", file=sys.stderr)
 
         # Base configuration
         board_config = self.board_config(variables.get("board"))
