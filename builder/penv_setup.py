@@ -102,12 +102,11 @@ def launch_temp_venv(temp_dir, penv_dir, script_path, remaining_args):
     ] + remaining_args
 
     subprocess.Popen(args, close_fds=True)
-    # Exit current process to release file locks on penv
     sys.exit(0)
 
 
-def install_python_deps(python_exe):
-    penv_dir = Path(python_exe).parent.parent
+def install_dependencies(python_executable):
+    penv_dir = Path(python_executable).parent.parent
     uv_executable = get_executable_path(penv_dir, "uv")
 
     uv_in_penv_available = False
@@ -119,7 +118,7 @@ def install_python_deps(python_exe):
 
     if not uv_in_penv_available:
         try:
-            subprocess.check_call([python_exe, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
+            subprocess.check_call([python_executable, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)
         except subprocess.CalledProcessError as e:
             sys.stderr.write(f"Error installing uv: {e}\n")
@@ -127,7 +126,7 @@ def install_python_deps(python_exe):
 
     def get_installed_packages():
         try:
-            cmd = [uv_executable, "pip", "list", f"--python={python_exe}", "--format=json"]
+            cmd = [uv_executable, "pip", "list", f"--python={python_executable}", "--format=json"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             if result.returncode == 0:
                 packages = json.loads(result.stdout)
@@ -146,9 +145,10 @@ def install_python_deps(python_exe):
     if to_install:
         try:
             subprocess.check_call(
-                [uv_executable, "pip", "install", "--quiet", "--upgrade", f"--python={python_exe}"] + to_install,
+                [uv_executable, "pip", "install", "--quiet", "--upgrade", f"--python={python_executable}"] + to_install,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600
             )
+            print(f"[STEP 9] Installed/upgraded Python dependencies: {to_install}")
         except Exception as e:
             sys.stderr.write(f"Error installing dependencies: {e}\n")
             return False
@@ -191,7 +191,7 @@ def in_temp_process(penv_dir, temp_dir, script_path, remaining_args):
 
     # Step 7/8: Install dependencies if possible
     if has_internet_connection():
-        if not install_python_deps(str(penv_path / ("Scripts" if IS_WINDOWS else "bin") /
+        if not install_dependencies(str(penv_path / ("Scripts" if IS_WINDOWS else "bin") /
                                      ("python.exe" if IS_WINDOWS else "python"))):
             sys.stderr.write("Failed to install Python dependencies\n")
             sys.exit(1)
@@ -203,10 +203,7 @@ def in_temp_process(penv_dir, temp_dir, script_path, remaining_args):
     sys.exit(0)
 
 
-def setup_pipenv_in_package(env, penv_dir):
-    """
-    Checks if 'penv' exists; if not, creates virtual environment with uv or fallback.
-    """
+def setup_pipenv(env, penv_dir):
     if not os.path.isfile(get_executable_path(penv_dir, "python")):
         uv_success = False
         uv_cmd = None
@@ -240,6 +237,16 @@ def setup_pipenv_in_package(env, penv_dir):
         write_marker(penv_dir)
         return uv_cmd if uv_success else None
     return None
+
+
+def setup_python_paths(penv_dir):
+    python_ver = f"python{sys.version_info.major}.{sys.version_info.minor}"
+    site_packages = (
+        str(Path(penv_dir) / "Lib" / "site-packages") if IS_WINDOWS
+        else str(Path(penv_dir) / "lib" / python_ver / "site-packages")
+    )
+    if os.path.isdir(site_packages):
+        site.addsitedir(site_packages)
 
 
 def setup_python_paths(penv_dir):
