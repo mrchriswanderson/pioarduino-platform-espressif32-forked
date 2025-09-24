@@ -53,12 +53,12 @@ penv_setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(penv_setup)
 
 setup_pipenv = penv_setup.setup_pipenv
-create_temp_venv = penv_setup.create_temp_venv
-launch_temp_venv = penv_setup.launch_temp_venv
+create_venv = penv_setup.create_venv
+launch_penv = penv_setup.launch_penv
 in_temp_process = penv_setup.in_temp_process
 install_dependencies = penv_setup.install_dependencies
-launch_penv = penv_setup.launch_penv_python
-has_internet_connection = penv_setup.has_internet_connection
+write_marker = penv_setup.write_marker
+has_internet = penv_setup.has_internet_connection
 get_executable_path = penv_setup.get_executable_path
 
 # Constants
