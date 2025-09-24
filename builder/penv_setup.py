@@ -269,11 +269,18 @@ def setup_python_environment(env, platform, platform_dir, install_esptool=True):
 
     python_executable = get_executable_path(penv_dir, "python")
 
+    print(f"[DEBUG] Using penv python executable: {python_executable}", file=sys.stderr)
+
     if env:
         env.Replace(PYTHONEXE=python_executable)
+        print(f"[DEBUG] Set env PYTHONEXE to penv python executable", file=sys.stderr)
+
+    # Zusätzlich globale Umgebungsvariable setzen, falls env nicht komplett verwendet wird
+    os.environ["PYTHONEXE"] = python_executable
+    os.environ["PATH"] = f"{Path(penv_dir) / ('Scripts' if IS_WINDOWS else 'bin')}{os.pathsep}{os.environ.get('PATH', '')}"
 
     if not Path(python_executable).exists():
-        sys.stderr.write(f"Python executable not found: {python_executable}\n")
+        sys.stderr.write(f"Python executable not found in penv: {python_executable}\n")
         sys.exit(1)
 
     setup_python_paths(penv_dir)
@@ -283,23 +290,25 @@ def setup_python_environment(env, platform, platform_dir, install_esptool=True):
 
     if has_internet_connection() or bool(os.getenv("GITHUB_ACTIONS")):
         if not install_dependencies(python_executable, uv_exec):
-            sys.stderr.write("Failed to install dependencies\n")
+            sys.stderr.write("Failed to install Python dependencies\n")
             sys.exit(1)
 
     if install_esptool:
         if env:
-            # Use env-specific install if applicable
             platform.install_esptool(env, platform, python_executable, uv_bin)
         else:
             _install_pyos_tool(platform, python_executable, uv_bin)
 
-    # Certifi etc env
-    certifi_path = subprocess.check_output([python_executable, "-m", "certifi"], text=True, timeout=5).strip()
-    os.environ["REQUESTS_CA_BUNDLE"] = certifi_path
-    os.environ["SSL_CERT_FILE"] = certifi_path
-    if env:
-        env.AppendENVPath("REQUESTS_CA_BUNDLE", certifi_path)
-        env.AppendENVPath("SSL_CERT_FILE", certifi_path)
+    # Setup certifi environment variables
+    try:
+        certifi_path = subprocess.check_output([python_executable, "-m", "certifi"], text=True, timeout=5).strip()
+        os.environ["REQUESTS_CA_BUNDLE"] = certifi_path
+        os.environ["SSL_CERT_FILE"] = certifi_path
+        if env:
+            env.AppendENVPath("REQUESTS_CA_BUNDLE", certifi_path)
+            env.AppendENVPath("SSL_CERT_FILE", certifi_path)
+    except Exception as e:
+        print(f"Warning: Could not configure certifi environment variables: {e}", file=sys.stderr)
 
     return python_executable, esptool_bin
 
