@@ -244,7 +244,7 @@ class Espressif32Platform(PlatformBase):
         if env:
             uv_exe = setup_pipenv(env, penv_dir)
         else:
-            uv_exe = penv_setup._setup_pipenv_minimal(penv_dir)
+            uv_exe = _setup_pipenv_minimal(penv_dir)
 
         python_bin = get_executable_path(penv_dir, "python")
 
