@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/pioarduino/platform-espressif32.git"
+    "url": "https://github.com/mrchriswanderson/pioarduino-platform-espressif32-forked.git"
   },
   "version": "55.03.32",
   "frameworks": {
